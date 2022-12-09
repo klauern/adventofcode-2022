@@ -14,40 +14,44 @@ func main() {
 33549
 35390`
 	exampleLines := strings.Split(exampleMap, "\n")
-	fmt.Printf("Example Map has %d visible\n", totalVisibleTrees(readMap(exampleLines)))
+	exTrees, exScore := totalVisibleTrees(readMap(exampleLines))
+	fmt.Printf("Example Map has %d visible with a max scenic score of %d\n", exTrees, exScore)
 
 	file, _ := os.ReadFile("day8/input.txt")
 	lines := strings.Split(string(file), "\n")
 	m := readMap(lines)
-	fmt.Println("totalVisibleTrees", totalVisibleTrees(m))
+	trees, score := totalVisibleTrees(m)
+	fmt.Println("totalVisibleTrees", trees, "score", score)
 
 }
 
-func totalVisibleTrees(trees [][]int) int {
+func totalVisibleTrees(trees [][]int) (int, int) {
 	total := 0
+	maxScore := 0
 	for y, row := range trees {
 		for x, height := range row {
 			col := zipColumn(trees, x)
-			if isUpVisible(col, height, y) {
-				total++
-				continue
-			}
-			if isRightVisible(trees[y], height, x) {
-				total++
-				continue
-			}
-			if isDownVisible(col, height, y) {
-				total++
-				continue
-			}
-			if isLeftVisible(trees[y], height, x) {
-				total++
-				continue
+
+			up, upScore := isUpVisible(col, height, y)
+			right, rightScore := isRightVisible(trees[y], height, x)
+			down, downScore := isDownVisible(col, height, y)
+			left, leftScore := isLeftVisible(trees[y], height, x)
+			if up || left || right || down {
+				score := scenicScore(upScore, downScore, leftScore, rightScore)
+				fmt.Println("score:", score, upScore, downScore, leftScore, rightScore)
+				if score > maxScore {
+					maxScore = score
+				}
+				total += 1
 			}
 		}
 	}
 
-	return total
+	return total, maxScore
+}
+
+func scenicScore(up, down, left, right int) int {
+	return up * down * left * right
 }
 
 func zipColumn(trees [][]int, col int) []int {
@@ -58,40 +62,48 @@ func zipColumn(trees [][]int, col int) []int {
 	return res
 }
 
-func isDownVisible(col []int, height, y int) bool {
+func isDownVisible(col []int, height, y int) (bool, int) {
+	visibleTrees := 0
 	for i := y + 1; i < len(col); i++ {
 		if col[i] >= height {
-			return false
+			return false, visibleTrees + 1
 		}
+		visibleTrees += 1
 	}
-	return true
+	return true, visibleTrees
 }
 
-func isUpVisible(col []int, height, y int) bool {
+func isUpVisible(col []int, height, y int) (bool, int) {
+	visibleTrees := 0
 	for i := y - 1; i >= 0; i-- {
 		if col[i] >= height {
-			return false
+			return false, visibleTrees + 1
 		}
+		visibleTrees += 1
 	}
-	return true
+	return true, visibleTrees
 }
 
-func isRightVisible(row []int, height, x int) bool {
+func isRightVisible(row []int, height, x int) (bool, int) {
+	visibleTrees := 0
 	for i := x + 1; i < len(row); i++ {
 		if row[i] >= height {
-			return false
+			return false, visibleTrees + 1
 		}
+		visibleTrees += 1
 	}
-	return true
+	return true, visibleTrees
 }
 
-func isLeftVisible(row []int, height, x int) bool {
+func isLeftVisible(row []int, height, x int) (bool, int) {
+	visibleTrees := 0
 	for i := x - 1; i >= 0; i-- {
 		if row[i] >= height {
-			return false
+			return false, visibleTrees + 1
 		}
+		visibleTrees += 1
 	}
-	return true
+	return true, visibleTrees
 }
 
 func readMap(lines []string) [][]int {
