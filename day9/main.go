@@ -19,7 +19,7 @@ D 1
 L 5
 R 2`
 
-	_, exampleMoves := readVectors(strings.Split(moves, "\n"))
+	exampleMoves := readVectors(strings.Split(moves, "\n"))
 	head, tail := &Knot{
 		x:         100,
 		y:         100,
@@ -42,7 +42,7 @@ R 2`
 	file, _ := os.ReadFile("day9/input.txt")
 	lines := strings.Split(string(file), "\n")
 
-	_, movements := readVectors(lines)
+	movements := readVectors(lines)
 
 	head, tail = &Knot{
 		x:         100,
@@ -62,6 +62,8 @@ R 2`
 	fmt.Println("head", head)
 	fmt.Println("tail", tail)
 	fmt.Println("total positions tail occupied", len(tail.positions))
+
+	testLarger()
 }
 
 func (k *Knot) nearby(from *Knot) bool {
@@ -72,39 +74,43 @@ func (k *Knot) nearby(from *Knot) bool {
 
 func chase(head, tail *Knot, move Movement) {
 	for i := 0; i < move.Amount; i++ {
-		switch move.Direction {
-		case "U":
-			head.y += 1
-		case "D":
-			head.y -= 1
-		case "L":
-			head.x -= 1
-		case "R":
-			head.x += 1
-		}
-		if !tail.nearby(head) {
-			// find what move to make U, UL, L, DL, D, DR, R, UR
-			xDelta := math.Abs(float64(head.x) - float64(tail.x))
-			yDelta := math.Abs(float64(head.y) - float64(tail.y))
+		singleMove(head, tail, move.Direction)
+	}
+}
 
-			if xDelta >= 2.0 {
-				tail.y = head.y
-				if tail.x > head.x {
-					tail.x = head.x + 1
-				} else if tail.x < head.x {
-					tail.x = head.x - 1
-				}
+func singleMove(head *Knot, tail *Knot, direction string) {
+	switch direction {
+	case "U":
+		head.y += 1
+	case "D":
+		head.y -= 1
+	case "L":
+		head.x -= 1
+	case "R":
+		head.x += 1
+	}
+	if !tail.nearby(head) {
+		// find what move to make U, UL, L, DL, D, DR, R, UR
+		xDelta := math.Abs(float64(head.x) - float64(tail.x))
+		yDelta := math.Abs(float64(head.y) - float64(tail.y))
+
+		if xDelta >= 2.0 {
+			tail.y = head.y
+			if tail.x > head.x {
+				tail.x = head.x + 1
+			} else if tail.x < head.x {
+				tail.x = head.x - 1
 			}
-			if yDelta >= 2.0 {
-				tail.x = head.x
-				if tail.y > head.y {
-					tail.y = head.y + 1
-				} else if tail.y < head.y {
-					tail.y = head.y - 1
-				}
-			}
-			tail.positions[tail.String()] = true
 		}
+		if yDelta >= 2.0 {
+			tail.x = head.x
+			if tail.y > head.y {
+				tail.y = head.y + 1
+			} else if tail.y < head.y {
+				tail.y = head.y - 1
+			}
+		}
+		tail.positions[tail.String()] = true
 	}
 }
 
@@ -128,8 +134,7 @@ func (k *Knot) String() string {
 	return fmt.Sprintf("%v,%v", k.x, k.y)
 }
 
-func readVectors(lines []string) ([]Vector, []Movement) {
-	var vectors []Vector
+func readVectors(lines []string) []Movement {
 	var movements []Movement
 	for _, line := range lines {
 		instruction := strings.Split(line, " ")
@@ -138,16 +143,44 @@ func readVectors(lines []string) ([]Vector, []Movement) {
 			Direction: instruction[0],
 			Amount:    amt,
 		})
-		switch instruction[0] {
-		case "L":
-			vectors = append(vectors, Vector{amt * -1, 0})
-		case "D":
-			vectors = append(vectors, Vector{0, amt * -1})
-		case "U":
-			vectors = append(vectors, Vector{0, amt})
-		case "R":
-			vectors = append(vectors, Vector{amt, 0})
+	}
+	return movements
+}
+
+func testLarger() {
+	moves := `R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20`
+	examples := strings.Split(moves, "\n")
+	exampleMoves := readVectors(examples)
+
+	snakes := make([]*Knot, 10)
+	for i, _ := range snakes {
+		snakes[i] = &Knot{
+			x: 0,
+			y: 0,
+			positions: map[string]bool{
+				"0,0": true,
+			},
 		}
 	}
-	return vectors, movements
+
+	for _, move := range exampleMoves {
+		for i, _ := range snakes {
+			if i >= 1 {
+				for j := 0; j < move.Amount; j++ {
+					for k := i; k > 0; k-- {
+						singleMove(snakes[k], snakes[k-1], move.Direction)
+					}
+				}
+			}
+		}
+	}
+
+	fmt.Println("total positions tail occupied larger example", len(snakes[9].positions))
 }
